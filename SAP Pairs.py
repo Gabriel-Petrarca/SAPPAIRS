@@ -3,28 +3,37 @@ import random
 
 # Load data from the Excel file
 xls = pd.ExcelFile("SAP HOMIES.xlsx")
-seasoned_members_df = pd.read_excel(xls, "Actives Taking SAPs")
-new_members_df = pd.read_excel(xls, "New Mems!")
+seasoned_members_df = pd.read_excel(xls, "Actives Taking SAPs", header=None, names=["Seasoned Member"])
+new_members_df = pd.read_excel(xls, "New Mems!", header=None, names=["New Member"])
 
-# Shuffle the new members randomly
+# Shuffle the new members and seasoned members randomly
 new_members_list = new_members_df["New Member"].tolist()
 random.shuffle(new_members_list)
 
+seasoned_members_list = seasoned_members_df["Seasoned Member"].tolist()
+random.shuffle(seasoned_members_list)
+
 # Initialize a dictionary to store pairings
 pairings = {}
+# Initialize a dictionary to keep track of the number of pairs for each new member
+new_member_pairs = {new_member: 0 for new_member in new_members_list}
 
-# Create pairings for each seasoned member
-for _, seasoned_member in seasoned_members_df.iterrows():
-    seasoned_member_name = seasoned_member["Seasoned Member"]
-    pairings[seasoned_member_name] = []
+# Create pairings for each seasoned member, ensuring each new member has at least 3 pairs and up to 4 if possible
+for seasoned_member in seasoned_members_list:
+    pairings[seasoned_member] = []
 
-    # Get three different new members
-    for _ in range(3):
-        new_member = new_members_list.pop(0)  # Remove the new member from the list
-        pairings[seasoned_member_name].append(new_member)
+for _ in range(4):
+    for seasoned_member in seasoned_members_list:
+        # Filter new members who have less than 4 pairs and have not been used in this group
+        available_new_members = [new_member for new_member in new_members_list if new_member_pairs[new_member] < 4 and new_member not in pairings[seasoned_member]]
+        if not available_new_members:
+            continue  # No more new members available for this seasoned member
+        new_member = random.choice(available_new_members)  # Choose a random new member
+        pairings[seasoned_member].append(new_member)
+        new_member_pairs[new_member] += 1
 
 # Create a new dataframe for the pairings
 pairings_df = pd.DataFrame(pairings.items(), columns=["Seasoned Member", "New Members"])
 
 # Save the pairings to an Excel file
-pairings_df.to_excel("pairings.xlsx", index=False)
+pairings_df.to_excel("pairingstest.xlsx", index=False)
